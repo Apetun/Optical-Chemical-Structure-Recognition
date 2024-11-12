@@ -1,13 +1,14 @@
 import cv2
 import numpy as np
 import os
+import pickle
 import matplotlib.pyplot as plt
 
 # Constants
 THRESH_VAL = 100  # Adjusted threshold value to reduce false positives
 LINE_WIDTH = 18
 BORDER = 30
-STRUCTURES = ['struct1']
+STRUCTURES = ['struct19']
 PATHS = [f'data/{structure}/sd/' for structure in STRUCTURES]
 TEMPLATES = ['train/oh/combined.png', 'train/or/combined.png', 'train/o/combined.png', 'train/h/combined.png', 'train/n/combined.png', 'train/ro/combined.png']
 TEMPLATE_NAMES = ['OH', 'OR', 'O', 'H', 'N', 'RO']
@@ -16,21 +17,20 @@ COLOR_DICT_OCR = {
     'H': [255, 255, 0], 'N': [0, 255, 255], 'RO': [255, 0, 255]
 }
 
+# Ensure the 'pickles' directory exists
+if not os.path.exists('pickles'):
+    os.makedirs('pickles')
 
-### ocr ground truth import ###
-
+### OCR ground truth import ###
 GROUND_TRUTH_DICT = {}
-f = open('ocr_groundtruth.txt')
-for line in f.readlines():
-  split_line = line.split()
-  k = split_line[0]
-  vals = split_line[1:]
-  vals = [int(v) for v in vals]
-  GROUND_TRUTH_DICT[k] = vals
-f.close()
+with open('ocr_groundtruth.txt') as f:
+    for line in f:
+        split_line = line.split()
+        k = split_line[0]
+        vals = [int(v) for v in split_line[1:]]
+        GROUND_TRUTH_DICT[k] = vals
 
-### end ocr ground truth import ###
-
+### End OCR ground truth import ###
 
 # Helper function to determine if a point is inside a box
 def inside_box(center_x, center_y, box):
@@ -53,10 +53,7 @@ def template_match(template, img, min_scale=0.3, max_scale=1.0, n_scales=15, thr
         loc = np.where(res >= threshold)
 
         for pt in zip(*loc[::-1]):
-            try:
-                score = res[pt[1], pt[0]]
-            except IndexError:
-                continue
+            score = res[pt[1], pt[0]]
             x0, x1, y0, y1 = pt[0], pt[0] + w, pt[1], pt[1] + h
             center_x, center_y = x0 + w // 2, y0 + h // 2
             flag, deletions = 0, []
@@ -120,50 +117,49 @@ def all_template_match(templates, template_names, img, tol=0.6, display=False):
             acc = 1
     return template_dict, acc
 
+# Save detected structures as pickle files
+def save_structure(template_dict, image_name):
+    pickle_filename = os.path.join('pickles', f"{image_name.split('.')[0]}_structures.pkl")
+    print(template_dict)
+    with open(pickle_filename, 'wb') as f:
+        pickle.dump(template_dict, f)
 
-def all_template_match_all_images(templates, template_names, path, tol=0.6,display=False):
-  true_pos = 0
-  false_pos = 0
-  false_neg = 0
-  correct = 0
-  n_images = 0
-  for i,image in enumerate(os.listdir(path)):
-    if image[len(image)-4:len(image)] != '.png':
-      continue
-    n_images += 1
-    full_name = path + image
-    template_dict, acc = all_template_match(templates, template_names, full_name, tol=tol, display=display)
-    correct += acc
-    comparison = [template_dict['OH'], template_dict['OR'], template_dict['O'], \
-    template_dict['H'], template_dict['N'], template_dict['RO']]
-    comparison = [len(c) for c in comparison]
-    truth = GROUND_TRUTH_DICT[image[0:8]]
-    for i in range(len(comparison)):
-      if comparison[i] == truth[i]:
-        true_pos += comparison[i]
-      if comparison[i] > truth[i]:
-        false_pos += comparison[i] - truth[i]
-        true_pos += truth[i]
-      if comparison[i] < truth[i]:
-        false_neg += truth[i] - comparison[i]
-        true_pos += comparison[i]
-  if true_pos + false_pos > 0:
-    precision = float(true_pos) / (float(true_pos) + float(false_pos))
-  else:
-    precision = 1.0
-  if true_pos + false_neg > 0:
-    recall = float(true_pos) / (float(true_pos) + float(false_neg))
-  else:
-    recall = 1.0
-  
-  return precision, recall, true_pos, false_pos, false_neg, float(correct) / n_images
+# Process all images and save results as pickles
+def all_template_match_all_images(templates, template_names, path, tol=0.6, display=False):
+    true_pos = 0
+    false_pos = 0
+    false_neg = 0
+    correct = 0
+    n_images = 0
+    for i, image in enumerate(os.listdir(path)):
+        if not image.endswith('.png'):
+            continue
+        n_images += 1
+        full_name = os.path.join(path, image)
+        template_dict, acc = all_template_match(templates, template_names, full_name, tol=tol, display=display)
+        
+        # Save each detected structure as a pickle
+        save_structure(template_dict, image)
+        
+        correct += acc
+        comparison = [len(template_dict[key]) for key in TEMPLATE_NAMES]
+        truth = GROUND_TRUTH_DICT.get(image[:8], [0] * len(TEMPLATE_NAMES))
+        for i in range(len(comparison)):
+            if comparison[i] == truth[i]:
+                true_pos += comparison[i]
+            elif comparison[i] > truth[i]:
+                false_pos += comparison[i] - truth[i]
+                true_pos += truth[i]
+            elif comparison[i] < truth[i]:
+                false_neg += truth[i] - comparison[i]
+                true_pos += comparison[i]
+    precision = float(true_pos) / (float(true_pos) + float(false_pos)) if true_pos + false_pos > 0 else 1.0
+    recall = float(true_pos) / (float(true_pos) + float(false_neg)) if true_pos + false_neg > 0 else 1.0
+    return precision, recall, true_pos, false_pos, false_neg, float(correct) / n_images
 
-
-
-# Processing all images in given directories
+# Run the template matching and save results
 for path in PATHS:
     precision, recall, tp, fp, fn, acc = all_template_match_all_images(
         TEMPLATES, TEMPLATE_NAMES, path, tol=0.77, display=True
     )
     print(precision, recall, acc)
-            
