@@ -110,8 +110,6 @@ def detect_bonds(img, template_dict, corner_file, bbox_width=40, angle_tol = 1):
     corr = 1.0
     fp_float = 0.0
     fn_float = 0.0
-    with open(template_dict[0:11] + '_edges.pickle', 'wb') as handle:
-      pickle.dump(edges, handle)
   else:
     corr = 0.0
     fp = input("False positives --> ")
@@ -119,9 +117,15 @@ def detect_bonds(img, template_dict, corner_file, bbox_width=40, angle_tol = 1):
     fp_float = float(fp)
     fn_float = float(fn)
   plt.close()
+  save_edge(edges,img)
   return corr, fp_float, fn_float, float(n)
 
 
+# Save detected structures as pickle files
+def save_edge(edges_list, image_name):
+    pickle_filename = os.path.join(PICKLE_PATH, f"{image_name.split('/')[-1].split('.')[0]}_edges.pkl")
+    with open(pickle_filename, 'wb') as f:
+        pickle.dump(edges_list, f)
 
 def detect_bond_between_corners(im, corner1, corner2, bbox_width, angle_tol, hough_tol=10, window_spacing=15):
   v = np.array([corner2[0] - corner1[0], corner2[1] - corner1[1]])
