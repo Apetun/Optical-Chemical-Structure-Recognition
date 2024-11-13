@@ -169,7 +169,10 @@ def detect_bonds(img, template_dict, corner_file, bbox_width=40, angle_tol = 1):
   plt.ion()
   plt.show()
   
+  plt.waitforbuttonpress()
   plt.close()
+  
+  
   
   save_edge(edges,img)
   return 0,0,0,0
