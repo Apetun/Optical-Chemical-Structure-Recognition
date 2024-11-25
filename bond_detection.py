@@ -96,8 +96,8 @@ def detect_bond_between_corners(im, corner1, corner2, bbox_width, angle_tol, hou
     """
     CHANGE THIS
     """ 
-    #plt.imshow(display_im)
-    #plt.show()
+    plt.imshow(display_im)
+    plt.show()
   if n_true >= np.linalg.norm(v)/window_spacing-1:
     return True
   else:
