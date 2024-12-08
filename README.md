@@ -3,7 +3,8 @@
 This repository contains the implementation of an Optical Chemical Structure Recognition (OCSR) system using traditional computer vision techniques, focusing on image processing and Optical Character Recognition (OCR). It enables the conversion of chemical structure images into machine-readable formats to support cheminformatics applications.
 
 
-![struct19_04](https://github.com/user-attachments/assets/1e0621a8-3ea6-4bab-9955-9ca1efdd07c5)
+![struct19_04](https://github.com/user-attachments/assets/cb07517b-c432-4bc6-a28c-488d564961d0)
+
 
 ![fig8](https://github.com/user-attachments/assets/eaedea08-d5e7-48cb-80ac-c736870f3a48)
 
