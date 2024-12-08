@@ -43,5 +43,8 @@ Optical-Chemical-Structure-Recognition/
 │
 └── README.md              # Project documentation (this file)
 ```
+The full report on the methodology used in the project can be found in the file [Optical_Chemical_Structure_Recognition.pdf](https://github.com/user-attachments/files/18053071/Optical_Chemical_Structure_Recognition.pdf).
+
+
 ## License
 This project is licensed under the MIT License.
